@@ -7,11 +7,21 @@
             "dateutil",
             "botocore",
             "s3transfer",
-            "concurrent"
+            "concurrent",
+            "*.pyc",
+            "__pycache__",
+            "venv",
+            ".git",
+            ".env",
+            "*.db",
+            "tests"
         ],
         "profile_name": "default",
         "project_name": "proyecto",
-        "runtime": "python3.13",
+        "runtime": "python3.12",
+        "environment_variables": {
+            "DATABASE_URL": "sqlite:////tmp/veterinaria.db"
+        },
         "s3_bucket": "zappa-dmwm3sfii"
     }
 }

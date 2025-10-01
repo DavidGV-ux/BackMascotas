@@ -18,7 +18,7 @@ def mascotas_disponibles():
 @adopcion_bp.route('/solicitar', methods=['POST'])
 @jwt_required()
 def solicitar_adopcion():
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())  # ✅ Corregido
     data = request.get_json()
     
     mascota_id = data.get('mascota_id')
@@ -81,7 +81,7 @@ def listar_solicitudes():
 @jwt_required()
 @admin_required
 def aprobar_adopcion(id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())  # ✅ Corregido
     adopcion = Adopcion.query.get_or_404(id)
     
     data = request.get_json()
@@ -131,7 +131,7 @@ def aprobar_adopcion(id):
 @adopcion_bp.route('/mis-solicitudes', methods=['GET'])
 @jwt_required()
 def mis_solicitudes():
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())  # ✅ Corregido
     solicitudes = Adopcion.query.filter_by(solicitante_id=current_user_id).all()
     
     # Enriquecer con datos de mascota

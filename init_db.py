@@ -2,7 +2,8 @@ from dotenv import load_dotenv
 import os
 
 # ⚠️ CARGAR VARIABLES ANTES DE IMPORTAR ANYTHING
-load_dotenv()
+# Cargar explícitamente config.env para desarrollo local
+load_dotenv('config.env')
 
 # Ahora importar el resto
 from app import create_app
@@ -24,6 +25,12 @@ app = create_app('development')
 
 try:
     with app.app_context():
+        # Prueba de conexión a la base de datos antes de crear tablas
+        from sqlalchemy import text
+        from app.database import db
+        print("🔌 Probando conexión a la base de datos...")
+        db.session.execute(text("SELECT 1"))
+        print("✅ Conexión exitosa")
         print("📦 Creando tablas...")
         db.create_all()
         print("✅ Tablas creadas")

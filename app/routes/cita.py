@@ -12,7 +12,7 @@ cita_bp = Blueprint('citas', __name__)
 @cita_bp.route('', methods=['GET'])
 @jwt_required()
 def listar_citas():
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())  # ✅ Corregido
     user = Usuario.query.get(current_user_id)
     
     # Filtros opcionales
@@ -50,7 +50,7 @@ def listar_citas():
 @cita_bp.route('', methods=['POST'])
 @jwt_required()
 def crear_cita():
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())  # ✅ Corregido
     data = request.get_json()
     
     # Validaciones
@@ -82,7 +82,7 @@ def crear_cita():
 @cita_bp.route('/<int:id>', methods=['PUT'])
 @jwt_required()
 def actualizar_cita(id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())  # ✅ Corregido
     user = Usuario.query.get(current_user_id)
     cita = Cita.query.get_or_404(id)
     
@@ -120,7 +120,7 @@ def actualizar_cita(id):
 @cita_bp.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
 def cancelar_cita(id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())  # ✅ Corregido
     user = Usuario.query.get(current_user_id)
     cita = Cita.query.get_or_404(id)
     
@@ -136,7 +136,7 @@ def cancelar_cita(id):
 @cita_bp.route('/calendario', methods=['GET'])
 @jwt_required()
 def calendario_citas():
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())  # ✅ Corregido
     user = Usuario.query.get(current_user_id)
     
     # Obtener rango de fechas
