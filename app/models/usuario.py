@@ -24,12 +24,14 @@ class Usuario(db.Model):
     citas_veterinario = db.relationship('Cita', foreign_keys='Cita.veterinario_id', back_populates='veterinario', lazy=True)
     solicitudes_adopcion = db.relationship('Adopcion', foreign_keys='Adopcion.solicitante_id', back_populates='solicitante', lazy=True)
     adopciones_gestionadas = db.relationship('Adopcion', foreign_keys='Adopcion.administrador_id', back_populates='administrador', lazy=True)
-    
+    # Agregar en la clase Usuario, después de las relaciones existentes:
+    historial_creado = db.relationship('HistorialMedico', foreign_keys='HistorialMedico.veterinario_id', back_populates='veterinario', lazy=True)
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+       return check_password_hash(self.password_hash, password)
     
     def to_dict(self):
         return {

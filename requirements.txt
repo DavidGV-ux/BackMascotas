@@ -9,3 +9,5 @@ boto3==1.40.42
 Zappa==0.60.2
 psycopg[binary]==3.2.10
 PyMySQL==1.1.1
+python-keycloak==4.6.2
+reportlab

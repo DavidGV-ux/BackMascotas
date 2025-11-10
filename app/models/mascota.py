@@ -21,7 +21,9 @@ class Mascota(db.Model):
     propietario = db.relationship('Usuario', back_populates='mascotas')
     citas = db.relationship('Cita', back_populates='mascota', lazy=True)
     adopciones = db.relationship('Adopcion', back_populates='mascota', lazy=True)
-    
+    # Agregar en la clase Mascota:
+    historial_medico = db.relationship('HistorialMedico', back_populates='mascota', lazy=True, order_by='HistorialMedico.fecha_consulta.desc()')
+
     def to_dict(self):
         return {
             'id': self.id,

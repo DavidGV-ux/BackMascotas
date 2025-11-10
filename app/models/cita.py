@@ -1,6 +1,6 @@
+# app/models/cita.py
 from app.database import db
 from datetime import datetime
-
 
 class Cita(db.Model):
     __tablename__ = 'citas'
@@ -10,16 +10,18 @@ class Cita(db.Model):
     cliente_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     veterinario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
     fecha_hora = db.Column(db.DateTime, nullable=False)
-    motivo = db.Column(db.String(255))
-    estado = db.Column(db.String(20), default='pendiente')
+    motivo = db.Column(db.String(200))
+    estado = db.Column(db.String(20), default='pendiente')  # pendiente, confirmada, cancelada, completada
     observaciones = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relaciones bidireccionales
+    # Relaciones
     mascota = db.relationship('Mascota', back_populates='citas')
     cliente = db.relationship('Usuario', foreign_keys=[cliente_id], back_populates='citas')
     veterinario = db.relationship('Usuario', foreign_keys=[veterinario_id], back_populates='citas_veterinario')
-    
+    # Agregar en la clase Cita:
+    historial = db.relationship('HistorialMedico', back_populates='cita', uselist=False)
+
     def to_dict(self):
         return {
             'id': self.id,

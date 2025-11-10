@@ -20,8 +20,12 @@
         "project_name": "proyecto",
         "runtime": "python3.12",
         "environment_variables": {
-            "DATABASE_URL": "sqlite:////tmp/veterinaria.db"
-        },
-        "s3_bucket": "zappa-dmwm3sfii"
+            "DATABASE_URL": "sqlite:////tmp/veterinaria.db",
+            "KEYCLOAK_SERVER_URL": "http://localhost:8082/",
+            "KEYCLOAK_REALM": "Arquitectura",
+            "KEYCLOAK_CLIENT_ID": "12",
+            "KEYCLOAK_CLIENT_SECRET": "z8Ash2HG2NMHdwMrIaIcrRfMEcGEl6Wp",
+            "AWS_REGION": "us-east-2"
+        }
     }
 }

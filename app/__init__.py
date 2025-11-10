@@ -1,47 +1,98 @@
+# app/__init__.py
 import os
 import logging
-from tempfile import gettempdir
-from flask import Flask
+from flask import Flask, jsonify, request
 from flask_jwt_extended import JWTManager
-from .config import get_config
+from flask_cors import CORS
+from .config import config
 from .database import db
 
 logging.basicConfig(level=logging.DEBUG)
 
-
-def create_app(config_name: str | None = None) -> Flask:
-    # Ensure Flask instance path points to a writable location on Lambda
-    instance_dir = os.path.join(gettempdir(), 'instance')
+def create_app(config_name: str = None) -> Flask:
+    """Factory para crear instancia de Flask"""
+    
+    # ✅ ELIMINAR ESTA LÍNEA PROBLEMÁTICA:
+    # instance_dir = os.path.join(gettempdir(), 'instance')
+    
+    # ✅ USAR ESTA EN SU LUGAR (usa la misma ubicación que config.py):
+    instance_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'instance')
+    
     app = Flask(__name__, instance_path=instance_dir)
     
     # Load configuration
-    app.config.from_object(get_config(config_name))
+    if not config_name:
+        config_name = 'development'  # Default
+    
+    app.config.from_object(config[config_name])
+    
+    # ========== CONFIGURAR CORS ==========
+    CORS(app, resources={
+        r"/*": {
+            "origins": ["http://localhost:4200", "http://127.0.0.1:4200"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
+        }
+    })
+    
+    # Manejar preflight requests manualmente
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            response = jsonify({"message": "OK"})
+            response.headers.add("Access-Control-Allow-Origin", "http://localhost:4200")
+            response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+            response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+            return response, 200
     
     # Initialize extensions
     db.init_app(app)
-    jwt = JWTManager(app)  # AÑADIR ESTA LÍNEA
+    jwt = JWTManager(app)
     
-    # Register blueprints
     with app.app_context():
-        from .routes import auth_bp, mascota_bp, adopcion_bp, cita_bp
-        app.register_blueprint(auth_bp, url_prefix="/auth")
-        app.register_blueprint(mascota_bp, url_prefix="/mascotas")
-        app.register_blueprint(adopcion_bp, url_prefix="/adopciones")
-        app.register_blueprint(cita_bp, url_prefix="/citas")
+        # Importar blueprints
+        from .routes import (
+            auth_bp, 
+            mascota_bp, 
+            adopcion_bp,
+            cita_bp, 
+            historial_bp, 
+            usuarios_bp,
+            reportes_bp
+        )
         
-        # Auto-init DB on Lambda when using ephemeral SQLite in /tmp
-        db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
-        if isinstance(db_uri, str) and db_uri.startswith('sqlite:////tmp'):
-            # Ensure models are imported before create_all
-            from .models import usuario, mascota, adopcion, cita  # noqa: F401
-            db.create_all()
+        # Registrar blueprints
+        app.register_blueprint(auth_bp, url_prefix='/auth')
+        app.register_blueprint(mascota_bp, url_prefix='/mascotas')
+        app.register_blueprint(adopcion_bp, url_prefix='/adopciones')
+        app.register_blueprint(cita_bp, url_prefix='/citas')
+        app.register_blueprint(historial_bp, url_prefix='/historial')
+        app.register_blueprint(usuarios_bp, url_prefix='/usuarios')
+        app.register_blueprint(reportes_bp, url_prefix='/reportes')
+        
+        # ✅ ELIMINAR ESTA CONDICIÓN, SIEMPRE CREAR TABLAS:
+        # db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        # if isinstance(db_uri, str) and db_uri.startswith('sqlite:///tmp'):
+        
+        # Importar modelos para crear tablas
+        from .models import (
+            usuario, 
+            mascota, 
+            adopcion,
+            cita, 
+            HistorialMedico
+        )  # noqa: F401
+        
+        db.create_all()  # ✅ Siempre crear tablas
+        print(f"✅ Base de datos creada en: {app.instance_path}")
     
-    # Ruta raíz para Lambda health check
-    @app.get("/")
+    # Rutas de health check
+    @app.get('/')
     def index():
         return {"status": "ok", "message": "Veterinaria API"}, 200
     
-    @app.get("/health")
+    @app.get('/health')
     def health_check():
         return {"status": "ok"}, 200
     

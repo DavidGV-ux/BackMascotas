@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@aws-amplify/auth": "^6.16.0",
+    "@aws-amplify/storage": "^6.10.0",
+    "aws-amplify": "^6.15.7",
+    "aws-sdk": "^2.1692.0"
+  }
+}

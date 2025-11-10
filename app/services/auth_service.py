@@ -2,9 +2,30 @@ import secrets
 from datetime import datetime, timedelta
 from app.models.usuario import Usuario
 from app.database import db
+from flask import current_app
+from keycloak import KeycloakOpenID
 
 
 class AuthService:
+    _kc_client: KeycloakOpenID | None = None
+
+    @staticmethod
+    def get_keycloak_client() -> KeycloakOpenID:
+        if AuthService._kc_client is None:
+            cfg = current_app.config
+            server_url = cfg.get('KEYCLOAK_SERVER_URL')
+            realm = cfg.get('KEYCLOAK_REALM')
+            client_id = cfg.get('KEYCLOAK_CLIENT_ID')
+            client_secret = cfg.get('KEYCLOAK_CLIENT_SECRET')
+            if not all([server_url, realm, client_id, client_secret]):
+                raise RuntimeError('Keycloak settings are missing')
+            AuthService._kc_client = KeycloakOpenID(
+                server_url=server_url,
+                client_id=client_id,
+                realm_name=realm,
+                client_secret_key=client_secret
+            )
+        return AuthService._kc_client
     @staticmethod
     def generate_reset_token():
         return secrets.token_urlsafe(32)

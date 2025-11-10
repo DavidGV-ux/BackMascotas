@@ -1,56 +1,55 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
+
+# Obtener la ruta raíz del proyecto
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Solo cargar .env si no estamos en Lambda
 if not os.environ.get('LAMBDA_TASK_ROOT'):
-    # Cargar variables desde config.env explícitamente en entorno local
-    load_dotenv('config.env')
-
+    load_dotenv(BASE_DIR / 'config.env')
 
 class Config:
-    # Para Lambda, usar SQLite temporal o RDS
-    db_uri = os.getenv('DATABASE_URL')
+    # Forzar uso de la carpeta instance/
+    INSTANCE_PATH = BASE_DIR / 'instance'
     
-    if not db_uri:
-        # Si no hay DATABASE_URL, construir desde componentes
-        if os.getenv('DB_HOST'):
-            from urllib.parse import quote_plus
-            db_user = os.getenv('DB_USER', 'postgres')
-            db_password = quote_plus(os.getenv('DB_PASSWORD', ''))
-            db_host = os.getenv('DB_HOST', 'localhost')
-            db_name = os.getenv('DB_NAME', 'veterinaria_db')
-            db_uri = f"postgresql+psycopg://{db_user}:{db_password}@{db_host}/{db_name}"
-        else:
-            # Fallback a SQLite (solo para desarrollo)
-            db_uri = 'sqlite:///veterinaria.db'
+    # Crear la carpeta instance si no existe
+    INSTANCE_PATH.mkdir(exist_ok=True)
     
-    SQLALCHEMY_DATABASE_URI = db_uri
+    # Base de datos en instance/veterinaria.db
+    SQLALCHEMY_DATABASE_URI = f'sqlite:///{INSTANCE_PATH}/veterinaria.db'
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 1,
-        'pool_pre_ping': True,
-        'pool_recycle': 3600
-    }
-    
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'super-secret-change-this')
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'tu-secret-key-super-segura')
     JWT_ACCESS_TOKEN_EXPIRES = 3600
     
-    S3_BUCKET_PHOTOS = os.getenv('S3_BUCKET_PHOTOS')
-    AWS_REGION = os.getenv('AWS_REGION', 'us-east-2')
-
+    # AWS S3 Configuration
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME')
+    AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
+    
+    # Keycloak Configuration
+    KEYCLOAK_SERVER_URL = os.getenv('KEYCLOAK_SERVER_URL')
+    KEYCLOAK_REALM = os.getenv('KEYCLOAK_REALM')
+    KEYCLOAK_CLIENT_ID = os.getenv('KEYCLOAK_CLIENT_ID')
+    KEYCLOAK_CLIENT_SECRET = os.getenv('KEYCLOAK_CLIENT_SECRET')
+    
+    # Email Configuration
+    MAIL_SERVER = os.getenv('MAIL_SERVER')
+    MAIL_PORT = int(os.getenv('MAIL_PORT', 587))
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME')
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
+    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True') == 'True'
 
 class DevelopmentConfig(Config):
     DEBUG = True
 
-
 class ProductionConfig(Config):
     DEBUG = False
 
-
-def get_config(config_name=None):
-    configs = {
-        'development': DevelopmentConfig,
-        'production': ProductionConfig,
-        'default': DevelopmentConfig
-    }
-    return configs.get(config_name or 'default', DevelopmentConfig)
+config = {
+    'development': DevelopmentConfig,
+    'production': ProductionConfig,
+    'default': DevelopmentConfig
+}
