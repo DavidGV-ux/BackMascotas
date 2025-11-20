@@ -2,12 +2,10 @@ import os
 from app import create_app
 
 # Detectar si estamos en Lambda
-if os.environ.get('LAMBDA_TASK_ROOT'):
-    # Producción en Lambda
-    app = create_app('production')
-else:
-    # Desarrollo local
-    app = create_app('development')
+# En Lambda, Zappa detecta automáticamente y usa la app
+# create_app detectará el entorno automáticamente
+app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Solo se ejecuta en desarrollo local
+    app.run(debug=True, host='0.0.0.0', port=5000)

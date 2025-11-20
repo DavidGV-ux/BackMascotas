@@ -12,7 +12,7 @@ class Usuario(db.Model):
     nombre = db.Column(db.String(100))
     telefono = db.Column(db.String(15))
     direccion = db.Column(db.String(255))
-    rol = db.Column(db.String(10), default='CLIENTE')
+    rol = db.Column(db.String(20), default='CLIENTE')
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
     activo = db.Column(db.Boolean, default=True)
     reset_token = db.Column(db.String(100))

@@ -18,6 +18,9 @@ def crear_consulta():
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
     
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     # Solo veterinarios y administradores pueden crear consultas
     if user.rol not in ['VETERINARIO', 'ADMINISTRADOR']:
         return jsonify({'msg': 'Acceso denegado. Solo veterinarios pueden registrar consultas'}), 403
@@ -81,6 +84,9 @@ def ver_historial_mascota(mascota_id):
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
     
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     mascota = Mascota.query.get_or_404(mascota_id)
     
     # Solo el propietario, veterinarios y admins pueden ver el historial
@@ -109,6 +115,9 @@ def obtener_consulta(id):
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
     
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     historial = HistorialMedico.query.get_or_404(id)
     mascota = Mascota.query.get(historial.mascota_id)
     
@@ -133,6 +142,9 @@ def obtener_consulta(id):
 def actualizar_consulta(id):
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
     
     historial = HistorialMedico.query.get_or_404(id)
     
@@ -200,6 +212,9 @@ def actualizar_consulta(id):
 def consultas_pendientes():
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
     
     if user.rol not in ['VETERINARIO', 'ADMINISTRADOR']:
         return jsonify({'msg': 'Acceso denegado'}), 403

@@ -11,21 +11,127 @@
             "*.pyc",
             "__pycache__",
             "venv",
+            "venv_zappa",
+            "handler_venv",
             ".git",
             ".env",
             "*.db",
-            "tests"
+            "tests",
+            "Front",
+            "node_modules",
+            "*.log",
+            ".pytest_cache",
+            ".mypy_cache"
+        ],
+        "include": [
+            "pg8000"
+        ],
+        "slim_handler": false,
+        "binary_support": true,
+        "profile_name": "default",
+        "project_name": "veterinaria-api",
+        "runtime": "python3.12",
+        "s3_bucket": "zappa-veterinaria-deployments",
+        "memory_size": 512,
+        "timeout_seconds": 30,
+        "cors": true,
+        "cors_allow_headers": [
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With"
+        ],
+        "cors_allow_methods": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "OPTIONS",
+            "PATCH"
+        ],
+        "cors_allow_origins": [
+            "http://frontmascotas.s3-website.us-east-2.amazonaws.com",
+            "http://localhost:4200"
+        ],
+        "environment_variables": {
+            "FLASK_ENV": "production",
+            "DATABASE_URL": "postgresql+pg8000://postgres.gnugcsaafobcjdshvipj:electiva2025@aws-1-us-east-2.pooler.supabase.com:6543/postgres",
+            "AWS_REGION": "us-east-2",
+            "INIT_ADMIN_TOKEN": "veterinaria-init-admin-2024-secure-token",
+            "CORS_ORIGINS": "http://frontmascotas.s3-website.us-east-2.amazonaws.com,http://localhost:4200,http://127.0.0.1:4200"
+        },
+        "vpc_config": {
+            "SubnetIds": [],
+            "SecurityGroupIds": []
+        },
+        "events": []
+    },
+    "production": {
+        "app_function": "run.app",
+        "aws_region": "us-east-1",
+        "exclude": [
+            "boto3",
+            "dateutil",
+            "botocore",
+            "s3transfer",
+            "concurrent",
+            "*.pyc",
+            "__pycache__",
+            "venv",
+            "venv_zappa",
+            "handler_venv",
+            ".git",
+            ".env",
+            "*.db",
+            "tests",
+            "Front",
+            "node_modules",
+            "*.log",
+            ".pytest_cache",
+            ".mypy_cache",
+            "debug_*.py",
+            "verificar_*.py",
+            "init_*.py",
+            "reg_admin.py"
         ],
         "profile_name": "default",
-        "project_name": "proyecto",
+        "project_name": "veterinaria-api",
         "runtime": "python3.12",
+        "s3_bucket": "zappa-veterinaria-deployments-prod",
+        "memory_size": 1024,
+        "timeout_seconds": 60,
+        "domain": "api.veterinaria.com",
+        "certificate_arn": "",
+        "api_gateway_stage": "api",
+        "manage_roles": true,
+        "role_name": "ZappaLambdaExecutionRole",
+        "role_arn": "",
+        "lambda_description": "Veterinaria API - Production",
+        "cors": true,
+        "cors_allow_headers": [
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With"
+        ],
+        "cors_allow_methods": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "OPTIONS",
+            "PATCH"
+        ],
         "environment_variables": {
-            "DATABASE_URL": "sqlite:////tmp/veterinaria.db",
-            "KEYCLOAK_SERVER_URL": "http://localhost:8082/",
-            "KEYCLOAK_REALM": "Arquitectura",
-            "KEYCLOAK_CLIENT_ID": "12",
-            "KEYCLOAK_CLIENT_SECRET": "z8Ash2HG2NMHdwMrIaIcrRfMEcGEl6Wp",
-            "AWS_REGION": "us-east-2"
-        }
+            "FLASK_ENV": "production",
+            "DATABASE_URL": "postgresql+pg8000://postgres.gnugcsaafobcjdshvipj:electiva2025@aws-1-us-east-2.pooler.supabase.com:6543/postgres",
+            "AWS_REGION": "us-east-1",
+            "INIT_ADMIN_TOKEN": "veterinaria-init-admin-2024-secure-token-prod"
+        },
+        "events": [],
+        "vpc_config": {
+            "SubnetIds": [],
+            "SecurityGroupIds": []
+        },
+        "keep_warm": true,
+        "keep_warm_expression": "rate(5 minutes)"
     }
 }

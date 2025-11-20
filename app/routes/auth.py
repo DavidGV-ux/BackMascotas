@@ -5,8 +5,6 @@ from app.database import db
 from app.services.auth_service import AuthService
 from app.services.email_service import EmailService
 from app.utils.validators import Validators
-from app.utils.decorators import keycloak_required
-
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/register', methods=['POST'])
@@ -102,6 +100,85 @@ def login():
         'usuario': usuario.to_dict()
     }), 200
 
+@auth_bp.route('/init-admin', methods=['POST'])
+def init_admin():
+    """
+    Endpoint para inicializar el primer usuario administrador.
+    Solo funciona si no hay administradores en la base de datos.
+    Protegido con una variable de entorno INIT_ADMIN_TOKEN.
+    """
+    from flask import current_app
+    import os
+    
+    # Verificar token secreto desde variable de entorno
+    init_token = os.getenv('INIT_ADMIN_TOKEN', 'default-init-token-change-me')
+    provided_token = request.headers.get('X-Init-Token') or request.json.get('init_token') if request.is_json else None
+    
+    if provided_token != init_token:
+        return jsonify({'msg': 'Token de inicialización inválido'}), 403
+    
+    # Verificar si ya existe un administrador
+    existing_admin = Usuario.query.filter_by(rol='ADMINISTRADOR').first()
+    if existing_admin:
+        return jsonify({
+            'msg': 'Ya existe un administrador en el sistema',
+            'email': existing_admin.email
+        }), 400
+    
+    data = request.get_json() or {}
+    
+    # Valores por defecto o del request
+    email = data.get('email', 'admin@veterinaria.com').strip().lower()
+    password = data.get('password', 'admin123')
+    nombre = data.get('nombre', 'Administrador')
+    
+    # Validaciones
+    if not email or not password:
+        return jsonify({'msg': 'Email y contraseña son requeridos'}), 400
+    
+    if len(password) < 6:
+        return jsonify({'msg': 'La contraseña debe tener al menos 6 caracteres'}), 400
+    
+    # Verificar si el email ya existe
+    if Usuario.query.filter_by(email=email).first():
+        existing_user = Usuario.query.filter_by(email=email).first()
+        # Si existe pero no es admin, actualizar a admin
+        if existing_user.rol != 'ADMINISTRADOR':
+            existing_user.rol = 'ADMINISTRADOR'
+            existing_user.set_password(password)
+            existing_user.activo = True
+            db.session.commit()
+            
+            return jsonify({
+                'msg': 'Usuario actualizado a administrador',
+                'usuario': existing_user.to_dict()
+            }), 200
+    
+    # Crear nuevo administrador
+    try:
+        nuevo_admin = Usuario(
+            email=email,
+            nombre=nombre,
+            telefono=data.get('telefono'),
+            direccion=data.get('direccion'),
+            rol='ADMINISTRADOR',
+            activo=True
+        )
+        nuevo_admin.set_password(password)
+        
+        db.session.add(nuevo_admin)
+        db.session.commit()
+        
+        return jsonify({
+            'msg': 'Administrador inicializado exitosamente',
+            'usuario': nuevo_admin.to_dict(),
+            'email': email,
+            'password': password  # Solo en este endpoint especial
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'msg': f'Error al crear administrador: {str(e)}'}), 500
+
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
     data = request.get_json()
@@ -153,28 +230,3 @@ def get_current_user():
         return jsonify({'msg': 'Usuario no encontrado'}), 404
     
     return jsonify(usuario.to_dict()), 200
-
-# Keycloak endpoints
-@auth_bp.route('/kc/login', methods=['POST'])
-def keycloak_login():
-    data = request.get_json() or {}
-    username = data.get('username')
-    password = data.get('password')
-    if not username or not password:
-        return jsonify({'msg': 'Faltan credenciales'}), 400
-    try:
-        kc = AuthService.get_keycloak_client()
-        token = kc.token(username, password)
-        return jsonify({
-            'access_token': token.get('access_token'),
-            'refresh_token': token.get('refresh_token'),
-            'expires_in': token.get('expires_in'),
-            'token_type': token.get('token_type')
-        }), 200
-    except Exception as e:
-        return jsonify({'msg': 'Credenciales inválidas o Keycloak no disponible', 'detalle': str(e)}), 401
-
-@auth_bp.route('/kc/me', methods=['GET'])
-@keycloak_required
-def keycloak_me(userinfo):
-    return jsonify(userinfo), 200

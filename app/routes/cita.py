@@ -16,6 +16,9 @@ def listar_citas():
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
     
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     # Filtros opcionales
     estado = request.args.get('estado')
     fecha_desde = request.args.get('fecha_desde')
@@ -73,6 +76,10 @@ def crear_cita():
     
     # Verificar que la mascota pertenece al usuario (excepto admin)
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     mascota = Mascota.query.get_or_404(data['mascota_id'])
     
     if user.rol not in ['ADMIN', 'ADMINISTRADOR']:
@@ -101,6 +108,10 @@ def crear_cita():
 def actualizar_cita(id):
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     cita = Cita.query.get_or_404(id)
     
     # Verificar permisos
@@ -139,6 +150,10 @@ def actualizar_cita(id):
 def cancelar_cita(id):
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     cita = Cita.query.get_or_404(id)
     
     # Verificar permisos
@@ -156,6 +171,9 @@ def calendario_citas():
     """Obtiene todas las citas en formato calendario"""
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
     
     # Verificar que sea admin o veterinario
     if user.rol not in ['ADMIN', 'ADMINISTRADOR', 'VETERINARIO']:

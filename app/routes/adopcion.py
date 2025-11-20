@@ -7,8 +7,9 @@ from app.models.usuario import Usuario
 from app.database import db
 from io import BytesIO
 from app.utils.decorators import admin_required
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+
+# Importación lazy de reportlab para evitar errores si Pillow no está disponible
+# NO importar aquí - hacerlo dentro de las funciones que lo necesitan
 
 adopcion_bp = Blueprint('adopciones', __name__)
 
@@ -175,6 +176,9 @@ def responder_solicitud(id):
     """Propietario aprueba/rechaza solicitud para SU mascota"""
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
     
     solicitud = Adopcion.query.get_or_404(id)
     mascota = Mascota.query.get(solicitud.mascota_id)
@@ -371,6 +375,16 @@ def revisar_adopcion(id):
 @jwt_required()
 def generar_pdf(mascota_id):
     """Genera PDF con información de la mascota para adopción"""
+    # Lazy import de reportlab para evitar errores si Pillow no está disponible
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+    except (ImportError, ModuleNotFoundError) as e:
+        return jsonify({
+            'msg': 'Error al generar PDF: reportlab no está disponible',
+            'detalle': str(e)
+        }), 503
+    
     mascota = Mascota.query.get_or_404(mascota_id)
     propietario = Usuario.query.get(mascota.propietario_id)
     

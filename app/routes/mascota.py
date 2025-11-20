@@ -15,6 +15,9 @@ def get_mascotas():
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
     
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     # Admin ve TODAS las mascotas
     if user.rol in ['ADMIN', 'ADMINISTRADOR']:
         query = Mascota.query
@@ -46,6 +49,9 @@ def listar_todas_mascotas():
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
     
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     if user.rol not in ['VETERINARIO', 'ADMINISTRADOR', 'ADMIN']:
         return jsonify({'msg': 'Acceso denegado. Solo veterinarios y administradores'}), 403
     
@@ -70,6 +76,9 @@ def obtener_mascota(id):
     """Obtener detalle completo de una mascota"""
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
     
     mascota = Mascota.query.get_or_404(id)
     mascota_dict = mascota.to_dict()
@@ -135,6 +144,10 @@ def create_mascota():
     """Crear nueva mascota"""
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     data = request.get_json()
     
     if not data.get('nombre'):
@@ -176,6 +189,10 @@ def update_mascota(id):
     """Actualizar mascota"""
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     mascota = Mascota.query.get_or_404(id)
     
     # Admin puede editar CUALQUIER mascota
@@ -226,6 +243,10 @@ def delete_mascota(id):
     """Eliminar mascota"""
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     mascota = Mascota.query.get_or_404(id)
     
     if user.rol in ['ADMIN', 'ADMINISTRADOR']:
@@ -250,6 +271,10 @@ def upload_foto(id):
     """Subir foto de mascota"""
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+    
     mascota = Mascota.query.get_or_404(id)
     
     if user.rol in ['ADMIN', 'ADMINISTRADOR']:
