@@ -21,9 +21,9 @@ def crear_consulta():
     if not user:
         return jsonify({'msg': 'Usuario no encontrado'}), 404
     
-    # Solo veterinarios y administradores pueden crear consultas
-    if user.rol not in ['VETERINARIO', 'ADMINISTRADOR']:
-        return jsonify({'msg': 'Acceso denegado. Solo veterinarios pueden registrar consultas'}), 403
+    # Solo veterinarios pueden crear consultas (admin NO puede diagnosticar)
+    if user.rol != 'VETERINARIO':
+        return jsonify({'msg': 'Acceso denegado. Solo veterinarios pueden registrar consultas médicas'}), 403
     
     data = request.get_json()
     
@@ -148,9 +148,9 @@ def actualizar_consulta(id):
     
     historial = HistorialMedico.query.get_or_404(id)
     
-    # Solo el veterinario que creó la consulta o un admin pueden editarla
-    if historial.veterinario_id != current_user_id and user.rol != 'ADMINISTRADOR':
-        return jsonify({'msg': 'No autorizado'}), 403
+    # Solo el veterinario que creó la consulta puede editarla (admin NO puede)
+    if historial.veterinario_id != current_user_id:
+        return jsonify({'msg': 'No autorizado. Solo el veterinario que creó la consulta puede editarla'}), 403
     
     data = request.get_json()
     
@@ -216,8 +216,9 @@ def consultas_pendientes():
     if not user:
         return jsonify({'msg': 'Usuario no encontrado'}), 404
     
-    if user.rol not in ['VETERINARIO', 'ADMINISTRADOR']:
-        return jsonify({'msg': 'Acceso denegado'}), 403
+    # Solo veterinarios pueden ver consultas pendientes (admin NO puede)
+    if user.rol != 'VETERINARIO':
+        return jsonify({'msg': 'Acceso denegado. Solo veterinarios pueden ver consultas pendientes'}), 403
     
     # Buscar citas completadas sin historial médico
     citas = Cita.query.filter_by(estado='completada').filter(~Cita.historial.has()).all()

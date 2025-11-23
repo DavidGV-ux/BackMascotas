@@ -375,70 +375,127 @@ def revisar_adopcion(id):
 @jwt_required()
 def generar_pdf(mascota_id):
     """Genera PDF con información de la mascota para adopción"""
-    # Lazy import de reportlab para evitar errores si Pillow no está disponible
     try:
-        from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas
-    except (ImportError, ModuleNotFoundError) as e:
+        # Solución para reportlab sin Pillow en Lambda
+        # Crear stub completo de PIL antes de importar reportlab
+        import sys
+        import types
+        import os
+        
+        # Configurar reportlab para no usar PIL
+        os.environ['REPORTLAB_USE_PIL'] = '0'
+        
+        # Remover PIL roto si existe
+        for key in list(sys.modules.keys()):
+            if key.startswith('PIL') or key == '_imaging':
+                del sys.modules[key]
+        
+        # Crear módulo PIL._imaging (necesario para "from . import _imaging" en PIL.Image)
+        pil_imaging_module = types.ModuleType('PIL._imaging')
+        sys.modules['PIL._imaging'] = pil_imaging_module
+        
+        # Crear módulo PIL stub
+        pil_module = types.ModuleType('PIL')
+        sys.modules['PIL'] = pil_module
+        
+        # Crear módulo PIL.Image stub con _imaging
+        pil_image = types.ModuleType('PIL.Image')
+        pil_image._imaging = pil_imaging_module
+        
+        # Crear clase Image stub
+        class ImageStub:
+            @staticmethod
+            def open(*args, **kwargs):
+                raise NotImplementedError("PIL.Image not available")
+        
+        pil_image.Image = ImageStub
+        pil_module.Image = pil_image
+        sys.modules['PIL.Image'] = pil_image
+        
+        # Lazy import de reportlab para evitar errores si no está disponible
+        try:
+            from reportlab.lib.pagesizes import letter  # pyright: ignore[reportMissingModuleSource]
+            from reportlab.pdfgen import canvas  # pyright: ignore[reportMissingModuleSource]
+        except (ImportError, ModuleNotFoundError) as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'msg': 'Error al generar PDF: reportlab no está disponible en el servidor',
+                'detalle': str(e),
+                'error': 'reportlab_not_installed'
+            }), 503
+        
+        mascota = Mascota.query.get_or_404(mascota_id)
+        propietario = Usuario.query.get(mascota.propietario_id)
+        
+        if not propietario:
+            return jsonify({'msg': 'Propietario no encontrado'}), 404
+        
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
+        
+        # Título
+        p.setFont("Helvetica-Bold", 24)
+        p.drawString(100, height - 100, "Informacion de Adopcion")
+        
+        # Información de la mascota
+        y = height - 150
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(100, y, f"{mascota.nombre}")
+        
+        y -= 30
+        p.setFont("Helvetica", 12)
+        info = [
+            f"Especie: {mascota.especie or 'No especificada'}",
+            f"Raza: {mascota.raza or 'No especificada'}",
+            f"Edad: {mascota.edad or 'No especificada'} años",
+            f"Peso: {mascota.peso or 'No especificado'} kg",
+            f"Color: {mascota.color or 'No especificado'}",
+            "",
+            "Descripcion:",
+            f"{mascota.descripcion or 'Sin descripcion'}",
+            "",
+            "Contacto del Propietario:",
+            f"Nombre: {propietario.nombre or 'No especificado'}",
+            f"Telefono: {propietario.telefono or 'No especificado'}",
+            f"Email: {propietario.email or 'No especificado'}",
+            f"Direccion: {propietario.direccion or 'No especificada'}"
+        ]
+        
+        for line in info:
+            # Asegurar que no se salga de la página
+            if y < 50:
+                p.showPage()
+                y = height - 50
+            # Limitar longitud de línea y escapar caracteres problemáticos
+            line_clean = line[:80].encode('ascii', 'ignore').decode('ascii')
+            p.drawString(100, y, line_clean)
+            y -= 20
+        
+        p.setFont("Helvetica-Oblique", 10)
+        p.drawString(100, 50, f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        p.drawString(100, 35, "Veterinaria Software - Sistema de Adopciones")
+        
+        p.showPage()
+        p.save()
+        
+        buffer.seek(0)
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f'adopcion_{mascota.nombre}.pdf',
+            mimetype='application/pdf'
+        )
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({
-            'msg': 'Error al generar PDF: reportlab no está disponible',
-            'detalle': str(e)
-        }), 503
-    
-    mascota = Mascota.query.get_or_404(mascota_id)
-    propietario = Usuario.query.get(mascota.propietario_id)
-    
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-    
-    # Título
-    p.setFont("Helvetica-Bold", 24)
-    p.drawString(100, height - 100, "🐾 Información de Adopción")
-    
-    # Información de la mascota
-    y = height - 150
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(100, y, f"{mascota.nombre}")
-    
-    y -= 30
-    p.setFont("Helvetica", 12)
-    info = [
-        f"Especie: {mascota.especie or 'No especificada'}",
-        f"Raza: {mascota.raza or 'No especificada'}",
-        f"Edad: {mascota.edad or 'No especificada'} años",
-        f"Peso: {mascota.peso or 'No especificado'} kg",
-        f"Color: {mascota.color or 'No especificado'}",
-        "",
-        "Descripción:",
-        f"{mascota.descripcion or 'Sin descripción'}",
-        "",
-        "Contacto del Propietario:",
-        f"Nombre: {propietario.nombre}",
-        f"Teléfono: {propietario.telefono}",
-        f"Email: {propietario.email}",
-        f"Dirección: {propietario.direccion}"
-    ]
-    
-    for line in info:
-        p.drawString(100, y, line)
-        y -= 20
-    
-    p.setFont("Helvetica-Oblique", 10)
-    p.drawString(100, 50, f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-    p.drawString(100, 35, "Veterinaria Software - Sistema de Adopciones")
-    
-    p.showPage()
-    p.save()
-    
-    buffer.seek(0)
-    
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name=f'adopcion_{mascota.nombre}.pdf',
-        mimetype='application/pdf'
-    )
+            'msg': 'Error al generar PDF',
+            'error': str(e)
+        }), 500
 
 @adopcion_bp.route('/<int:solicitud_id>/transferir', methods=['PUT'])
 @jwt_required()

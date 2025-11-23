@@ -148,22 +148,49 @@ def actualizar_cita(id):
 @cita_bp.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
 def cancelar_cita(id):
-    current_user_id = int(get_jwt_identity())
-    user = Usuario.query.get(current_user_id)
-    
-    if not user:
-        return jsonify({'msg': 'Usuario no encontrado'}), 404
-    
-    cita = Cita.query.get_or_404(id)
-    
-    # Verificar permisos
-    if cita.cliente_id != current_user_id and user.rol not in ['ADMIN', 'ADMINISTRADOR']:
-        return jsonify({'msg': 'No autorizado'}), 403
-    
-    cita.estado = 'cancelada'
-    db.session.commit()
-    
-    return jsonify({'msg': 'Cita cancelada exitosamente'}), 200
+    """Cancelar cita - Clientes pueden cancelar sus propias citas, veterinarios las que aceptaron, admin todas"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        user = Usuario.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({'msg': 'Usuario no encontrado'}), 404
+        
+        cita = Cita.query.get_or_404(id)
+        
+        # Verificar permisos
+        es_cliente = cita.cliente_id == current_user_id
+        es_veterinario_asignado = cita.veterinario_id == current_user_id
+        es_admin = user.rol in ['ADMIN', 'ADMINISTRADOR']
+        es_veterinario = user.rol == 'VETERINARIO'
+        
+        # Clientes solo pueden cancelar sus propias citas
+        # Veterinarios pueden cancelar citas que aceptaron (donde son el veterinario asignado)
+        # Admin puede cancelar todas las citas
+        if not (es_cliente or (es_veterinario_asignado and es_veterinario) or es_admin):
+            return jsonify({
+                'msg': 'No autorizado. Solo puedes cancelar tus propias citas o las citas que aceptaste como veterinario'
+            }), 403
+        
+        # Verificar que la cita no esté ya completada o cancelada
+        if cita.estado in ['completada', 'cancelada']:
+            return jsonify({
+                'msg': f'No se puede cancelar una cita que ya está {cita.estado}'
+            }), 400
+        
+        cita.estado = 'cancelada'
+        db.session.commit()
+        
+        return jsonify({'msg': 'Cita cancelada exitosamente'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'msg': 'Error al cancelar la cita',
+            'error': str(e)
+        }), 500
 
 @cita_bp.route('/calendario', methods=['GET'])
 @jwt_required()
@@ -220,7 +247,7 @@ def calendario_citas():
 @jwt_required()
 def aceptar_cita(id):
     """
-    Aceptar cita (solo veterinarios y admin)
+    Aceptar cita (solo veterinarios, NO administradores)
     """
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
@@ -228,8 +255,8 @@ def aceptar_cita(id):
     if not user:
         return jsonify({'msg': 'Usuario no encontrado'}), 404
     
-    # Verificar que sea veterinario o admin
-    if user.rol not in ['VETERINARIO', 'ADMIN', 'ADMINISTRADOR']:
+    # Solo veterinarios pueden aceptar citas (admin NO puede)
+    if user.rol != 'VETERINARIO':
         return jsonify({'msg': 'Acceso denegado. Solo veterinarios pueden aceptar citas'}), 403
     
     cita = Cita.query.get_or_404(id)
@@ -253,7 +280,7 @@ def aceptar_cita(id):
 @jwt_required()
 def completar_cita(id):
     """
-    Completar cita y opcionalmente crear consulta
+    Completar cita (solo veterinarios, NO administradores)
     """
     current_user_id = int(get_jwt_identity())
     user = Usuario.query.get(current_user_id)
@@ -261,9 +288,9 @@ def completar_cita(id):
     if not user:
         return jsonify({'msg': 'Usuario no encontrado'}), 404
     
-    # Verificar que sea veterinario o admin
-    if user.rol not in ['VETERINARIO', 'ADMIN', 'ADMINISTRADOR']:
-        return jsonify({'msg': 'Acceso denegado'}), 403
+    # Solo veterinarios pueden completar citas (admin NO puede)
+    if user.rol != 'VETERINARIO':
+        return jsonify({'msg': 'Acceso denegado. Solo veterinarios pueden completar citas'}), 403
     
     cita = Cita.query.get_or_404(id)
     
@@ -272,7 +299,7 @@ def completar_cita(id):
         return jsonify({'msg': 'Solo se pueden completar citas confirmadas o pendientes'}), 400
     
     # Verificar que el veterinario sea el asignado (si ya está asignado)
-    if cita.veterinario_id and cita.veterinario_id != current_user_id and user.rol != 'ADMINISTRADOR':
+    if cita.veterinario_id and cita.veterinario_id != current_user_id:
         return jsonify({'msg': 'Esta cita está asignada a otro veterinario'}), 403
     
     # Asignar veterinario si no lo tiene

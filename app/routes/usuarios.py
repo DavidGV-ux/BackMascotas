@@ -47,22 +47,56 @@ def crear_veterinario():
     }), 201
 
 
+# Obtener roles disponibles
+@usuarios_bp.route('/roles-disponibles', methods=['GET'])
+@jwt_required()
+@admin_required
+def roles_disponibles():
+    """Retorna la lista de roles disponibles para selección"""
+    roles = [
+        {'value': 'CLIENTE', 'label': 'Cliente'},
+        {'value': 'VETERINARIO', 'label': 'Veterinario'},
+        {'value': 'ADMINISTRADOR', 'label': 'Administrador'}
+    ]
+    return jsonify(roles), 200
+
+
 # Actualizar rol de usuario (solo admin)
 @usuarios_bp.route('/<int:id>/cambiar-rol', methods=['PUT'])
 @jwt_required()
 @admin_required
 def cambiar_rol(id):
+    """Cambiar rol de usuario con validación estricta"""
     usuario = Usuario.query.get_or_404(id)
     data = request.get_json()
     
     nuevo_rol = data.get('rol')
-    if nuevo_rol not in ['CLIENTE', 'VETERINARIO', 'ADMINISTRADOR']:
-        return jsonify({'msg': 'Rol inválido'}), 400
     
+    # Validar que el rol esté presente
+    if not nuevo_rol:
+        return jsonify({'msg': 'El campo "rol" es requerido'}), 400
+    
+    # Validar que el rol sea uno de los permitidos
+    roles_permitidos = ['CLIENTE', 'VETERINARIO', 'ADMINISTRADOR']
+    if nuevo_rol not in roles_permitidos:
+        return jsonify({
+            'msg': f'Rol inválido. Los roles permitidos son: {", ".join(roles_permitidos)}',
+            'roles_disponibles': roles_permitidos
+        }), 400
+    
+    # Validar que no se esté cambiando el rol del mismo usuario admin
+    current_user_id = int(get_jwt_identity())
+    if usuario.id == current_user_id and nuevo_rol != 'ADMINISTRADOR':
+        return jsonify({'msg': 'No puedes cambiar tu propio rol de administrador'}), 400
+    
+    # Guardar rol anterior para el mensaje
+    rol_anterior = usuario.rol
     usuario.rol = nuevo_rol
     db.session.commit()
     
     return jsonify({
-        'msg': 'Rol actualizado exitosamente',
-        'usuario': usuario.to_dict()
+        'msg': f'Rol actualizado exitosamente de {rol_anterior} a {nuevo_rol}',
+        'usuario': usuario.to_dict(),
+        'rol_anterior': rol_anterior,
+        'rol_nuevo': nuevo_rol
     }), 200

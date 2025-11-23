@@ -24,7 +24,9 @@
             ".mypy_cache"
         ],
         "include": [
-            "pg8000"
+            "pg8000",
+            "reportlab",
+            "PIL"
         ],
         "slim_handler": false,
         "binary_support": true,
@@ -56,6 +58,7 @@
             "FLASK_ENV": "production",
             "DATABASE_URL": "postgresql+pg8000://postgres.gnugcsaafobcjdshvipj:electiva2025@aws-1-us-east-2.pooler.supabase.com:6543/postgres",
             "AWS_REGION": "us-east-2",
+            "S3_BUCKET_PHOTOS": "imagenesmascotasalec",
             "INIT_ADMIN_TOKEN": "veterinaria-init-admin-2024-secure-token",
             "CORS_ORIGINS": "http://frontmascotas.s3-website.us-east-2.amazonaws.com,http://localhost:4200,http://127.0.0.1:4200"
         },
@@ -93,6 +96,11 @@
             "init_*.py",
             "reg_admin.py"
         ],
+        "include": [
+            "pg8000",
+            "reportlab",
+            "PIL"
+        ],
         "profile_name": "default",
         "project_name": "veterinaria-api",
         "runtime": "python3.12",
@@ -124,6 +132,7 @@
             "FLASK_ENV": "production",
             "DATABASE_URL": "postgresql+pg8000://postgres.gnugcsaafobcjdshvipj:electiva2025@aws-1-us-east-2.pooler.supabase.com:6543/postgres",
             "AWS_REGION": "us-east-1",
+            "S3_BUCKET_PHOTOS": "imagenesmascotasalec",
             "INIT_ADMIN_TOKEN": "veterinaria-init-admin-2024-secure-token-prod"
         },
         "events": [],
